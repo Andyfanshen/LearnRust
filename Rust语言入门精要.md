@@ -715,3 +715,33 @@ if let Some(max) = config_max {
 ## 6. 项目管理
 
 Rust的项目被称为**包**（package），一个包含有一个`Cargo.toml`文件，该文件描述如何组织和构建其中的`crate`。
+
+`crate`是编译的最基本单元，一个包中可以含有至多一个**库crate**（library crate）和任意数量的**二进制crate**（binary crate）。
+
+`Cargo`约定，若存在`src/lib.rs`，则包带有与其同名的库crate；若存在`src/main.rs`，则包带有与其同名的二进制crate；其他的二进制crate可以放在`src/bin`目录中。
+
+通过指令`cargo run -bin name`运行指定的二进制crate（也可以在`Cargo.toml`中指定`default-run`）。
+
+`crate`是一种树形**模块**结构，而`src/lib.rs`和`src/main.rs`分别是库crate和二进制crate的根节点。
+
+**模块**（module），类似于其他语言中的命名空间，用于控制文件结构、作用域和可见性。
+
+模块的定义：
+
+```rust
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+
+        fn seat_at_table() {}
+    }
+
+    mod serving {
+        fn take_order() {}
+
+        fn serve_order() {}
+
+        fn take_payment() {}
+    }
+}
+```
