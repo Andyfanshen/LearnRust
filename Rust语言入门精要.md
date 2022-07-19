@@ -664,8 +664,6 @@ fn value_in_cents(coin: Coin) -> u8 {
 }
 ```
 
-
-
 `match`表达式可以绑定匹配模式的部分值，也就是从枚举成员中提取值：
 
 ```rust
@@ -676,8 +674,6 @@ fn plus_one(x: Option<i32>) -> Option<i32> {
     }
 }
 ```
-
-
 
 `match`表达式要求，匹配**必须**是**穷尽的**。但有时我们只对其中几个特定的值感兴趣，那么对于剩下的值就可以使用通配模式和占位符`_`：
 
@@ -719,3 +715,11 @@ if let Some(max) = config_max {
 
 
 ## 6. 项目管理
+
+Rust的项目被称为**包**（package），一个包含有一个`Cargo.toml`文件，该文件描述如何组织和构建其中的`crate`。
+
+树形结构的模块被称为`crate`；树形结构的根节点，也就是编译器的起始位置，是被称为`crate root`的源文件。
+
+包中可以包含至多一个`库crate`（library crate）和任意数量的`二进制crate`（binary crate），但**必须**至少包含一个`crate`（无论是`库crate`还是`二进制crate`）。
+
+`Cargo`约定，包中`src/main.rs`作为与包同名的`二进制crate`的`crate root`，而`src/lib.rs`作为与包同名的`库crate`的`crate root`；通过将文件放在`src/bin`下，包可以拥有任意数量的`二进制crate`（每个`src/bin`下的文件都会被编译成一个独立的`二进制crate`）。
