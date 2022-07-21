@@ -820,8 +820,6 @@ pub fn add_to_waitlist() {}
 
 简单来说，当单个文件内容较大的时候，可以在同级目录下创建一个与该文件同名的文件夹，然后将文件中的模块拆分成多个独立的文件装入这个文件夹中。模块之间的组织关系仍然维持不变，但将复杂的模块结构拆散到多个文件中可以控制单个文件的大小。
 
-
-
 另一种组织模块的方式是：
 
 1. 在某个文件夹下创建`mod.rs`文件
@@ -839,8 +837,6 @@ Rust项目中可以使用来自外部（比如[crates.io](https://crates.io)）�
 2. 通过`use`引入项目的作用域
 
 其实，标准库（std）也是外部crate，但Rust语言中一般包含标准库，所以不需要在`Cargo.toml`中列出，可以直接通过`use`引入。
-
-
 
 ## 7. 集合
 
@@ -910,3 +906,71 @@ let row = vec![SpreadsheetCell::Int(3),
 ```
 
 ### 7.2 String
+
+`String`是由标准库提供的一种字符串类型，相较于Rust的基础字符串`str`类型更加实用。
+
+`str`是Rust的基础字符串类型，一般以字面值的形式存在，无法获取所有权（不可修改），通常以借用的形式`&str`出现，常使用其切片：
+
+```rust
+let s = "Hello, world!";
+println!("{}", &s[2..]);
+```
+
+而`String`类型是可增长的、可变的、有所有权的、UTF-8编码的字符串类型。
+
+新建`String`字符串：
+
+```rust
+let mut s = String::new();
+```
+
+当有初始值时，可以通过`to_string`或者`String::from`来创建字符串：
+
+```rust
+let s = "initial contents".to_string();
+let s = String::from("initial contents");
+```
+
+Rust中，任何实现了`Display trait`的类型都可以使用`to_string`方法。
+
+更新字符串的方式很多，可以使用`+`运算符，也可以使用`format!`宏拼接，也可以使用`push_str`和`push`附加：
+
+```rust
+//使用+运算符
+let s1 = String::from("Hello, ");
+let s2 = String::from("world");
+let s = s1 + &s2;//s1的所有权被移动到s中
+
+//使用format!宏
+let s1 = String::from("world");
+let s2 = String::from("Hello");
+let s = format!("{s2}, {s1}!");
+
+//使用push_str附加String
+let mut s = String::from("Hello, ");
+s.push_str("world!");
+
+//使用push附加char
+let mut s = String::from("Hello");
+s.push('!');
+```
+
+Rus中不能直接索引`String`字符串，因为UTF-8是变长编码，一个字形簇可能对应着多个字节，贸然索引可能会引发问题。
+
+Rust中遍历字符串一般使用`chars`方法来返回Unicode标量值的迭代器：
+
+```rust
+for c in "你好".chars(){
+    println!("{c}");
+}
+```
+
+特殊需求下可以使用`bytes`方法返回原始字节的迭代器：
+
+```rust
+for b in "你好".bytes(){
+    println!("{b}");
+}
+```
+
+### 7.3 Hash Map
