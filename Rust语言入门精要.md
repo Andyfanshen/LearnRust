@@ -974,3 +974,70 @@ for b in "你好".bytes(){
 ```
 
 ### 7.3 Hash Map
+
+新建`HashMap`：
+
+```rust
+use std::collections::HashMap;
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+```
+
+Rust中的`HashMap`并没有被prelude自动引用，需要从标准库中引入。
+
+另一种构建`HashMap`的方式是在元组的`vector`上使用迭代器和`collect`方法：
+
+```rust
+use std::collections::HashMap;
+
+let teams = vec![String::from("Blue"), String::from("Yellow")];
+let initial_scores = vec![10, 50];
+
+let mut scores: HashMap<_, _> =
+    teams.into_iter().zip(initial_scores.into_iter()).collect();
+```
+
+`zip`将两个迭代器组合成一个元组迭代器，再通过该元组迭代器上的`collect`方法收集成`HashMap`。
+
+在`HashMap`中插入数据也采用与赋值相似的处理方式，即`Copy trait`类型被拷贝进`HashMap`中，而其他类型则是被移动进`HashMap`中。
+
+---
+
+`HashMap`获取值通过`get`方法：
+
+```rust
+let team_name = String::from("Blue");
+let score = scores.get(&team_name);//Option<Value>
+```
+
+`HashMap`是可以遍历的：
+
+```rust
+for (key, value) in &scores {
+    println!("{}: {}", key, value);
+}
+```
+
+`HashMap`中覆盖一个值：
+
+```rust
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Blue"), 25);//用25覆盖原值10
+```
+
+先检查是否为空再插入值：
+
+```rust
+scores.entry(String::from("Blue")).or_insert(50);
+```
+
+`or_insert`方法返回该值的可变引用，可以据此进行一些处理：
+
+```rust
+let count = scores.entry(String::from("Blue")).or_insert(0);
+*count += 1;
+```
+
+## 8. 错误处理
