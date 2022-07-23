@@ -211,6 +211,17 @@ fn calculate_length(s: String) -> (String, usize) {
 }
 ```
 
+Rust中，函数可以通过`return`提前返回值：
+
+```rust
+fn add_one(number: i32, flag: bool) -> i32 {
+    if flag {
+        return number + 1;
+    }
+    number
+}
+```
+
 ### 2.3 注释
 
 行注释：
@@ -1041,3 +1052,148 @@ let count = scores.entry(String::from("Blue")).or_insert(0);
 ```
 
 ## 8. 错误处理
+
+Rust中的错误分为**可恢复的**（recoverable）和**不可恢复的**（unrecoverable）。
+
+使用`panic!`处理不可恢复的错误：
+
+```rust
+panic!("crash and burn");
+```
+
+执行`panic!`宏会打印错误信息，展开并清理栈数据，然后退出。如果不需要清理数据而直接**终止**（abort）则在`Cargo.toml`中标注：
+
+```toml
+[profile.release]
+panic = 'abort'
+```
+
+发生panic时，在**Windows**系统中可以通过`$env: RUST_BACKTRACE=1`设置环境变量来得到backtrace：
+
+```shell
+$env: RUST_BACKTRACE=1; cargo run
+```
+
+---
+
+使用`Result`处理可恢复的错误：
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+许多函数的返回值类型是`Result<T, E>`，它说明函数调用可能会成功，也可能会失败，我们需要分别处理：
+
+```rust
+use std::fs::File;
+
+fn main() {
+    let f = File::open("hello.txt");
+
+    let f = match f {
+        Ok(file) => file,
+        Err(error) => panic!("Problem opening the file: {:?}", error),
+    };
+}
+```
+
+可以分析错误原因后更妥善地处理：
+
+```rust
+use std::io::ErrorKind;
+
+let f = match f {
+    Ok(file) => file,
+    Err(error) => match error.kind() {
+        ErrorKind::NotFound => match File::create("hello.txt") {
+            Ok(fc) => fc,
+            Err(e) => panic!("Problem creating the file: {:?}", e),
+        },
+        other_error => panic!("Problem opening the file: {:?}", other_error)
+    }
+};
+```
+
+或者用**闭包**书写：
+
+```rust
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let f = File::open("hello.txt").unwrap_or_else(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            File::create("hello.txt").unwrap_or_else(|error| {
+                panic!("Problem creating the file: {:?}", error);
+            })
+        } else {
+            panic!("Problem opening the file: {:?}", error);
+        }
+    });
+}
+```
+
+`unwrap_or_else`方法在结果是`Ok`时返回其中的值，在产生错误时调用传入的闭包。
+
+`unwrap`是很常用的辅助方法，它在结果是`Ok`时返回其中的值，在产生错误时调用`panic!`宏；如果需要传递更多的错误信息，可以使用`expect`方法：
+
+```rust
+use std::fs::File;
+
+fn main() {
+    let f = File::open("hello.txt").unwrap();
+    let f = File::open("hello.txt").expect("Failed to open hello.txt");
+}
+```
+
+有时也需要向上**传播错误**：
+
+```rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let f = File::open("hello.txt");
+
+    let mut f = match f {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+
+    let mut s = String::new();
+
+    match f.read_to_string(&mut s) {
+        Ok(_) => Ok(s),
+        Err(e) => Err(e),
+    }
+}
+```
+
+或者用`?`运算符书写：
+
+```rust
+use std::fs::File;
+use std::io;
+use std::io::Read;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut s = String::new();    
+    File::open("hello.txt")?.read_to_string(&mut s)?;
+    Ok(s)
+}
+```
+
+`Result`之后的`?`用于获取`Ok`中的值，或者将`Err`中的值作为函数返回值。
+
+`Option`之后也可以使用`?`运算符，获取`Some`中的值，或是提前返回`None`：
+
+```rust
+fn last_char_of_first_line(text: &str) -> Option<char> {
+    text.lines().next()?.chars().last()
+}
+```
+
+---
