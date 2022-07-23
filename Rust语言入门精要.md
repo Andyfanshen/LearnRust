@@ -482,6 +482,8 @@ struct User {
 
 结构体中的每个数据称为**字段**（field）。
 
+结构体的**命名规范**：单词首字母大写，单词直接相连（Pascal命名规范）。
+
 使用结构体时，需要创建一个**实例**：
 
 ```rust
@@ -602,6 +604,8 @@ enum IpAddrKind {
     V6,
 }
 ```
+
+枚举类型的**命名规范**与结构体一致（Pascal命名规范）。
 
 通过`::`来指定具体的**枚举值**：
 
@@ -1197,3 +1201,261 @@ fn last_char_of_first_line(text: &str) -> Option<char> {
 ```
 
 ---
+
+使用`panic!`的情景一般有以下几种：
+
+1. 编写示例、代码原型和测试。这类情况中，`panic!`一般作为错误处理的占位符，可以让程序更加简洁健壮，为后续处理留下标记。
+
+2. 我们确信从逻辑上不会出现`Err`值。当我们确信在逻辑上不可能出现错误时，可以接受直接调用`unwrap`。
+
+3. 可能会导致程序陷入有害状态。这种有害状态是非预期的行为，而此后的代码运行要求程序不处于这种有害状态，或者现阶段没有可行的手段来编码处理这类有害状态，则最好的处理方式就是`panic!`。（但如果这种有害状态是预期的行为，则最好考虑将失败情况向上传播，由调用者决定如何处理。）
+
+---
+
+有些时候我们可以利用一下编译器的类型检查机制来辅助完成一些验证工作。这种时候我们需要创建自定义类型：
+
+```rust
+pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 || value > 100 {
+            panic!("Guess value must be between 1 and 100, got {}.", value);
+        }
+
+        Guess { value }
+    }
+
+    pub fn value(&self) -> i32 {
+        self.value
+    }
+}
+```
+
+`Guess`类型的关联函数`new`保证了所创建的`Guess`实例中，`value`值一定会在1到100之间。
+
+对于可能会出现`panic!`的情况，开发者应当写入API文档中。
+
+## 9. 泛型、Trait和生命周期
+
+### 9.1 泛型
+
+在结构体定义中使用泛型：
+
+```rust
+struct Point<T, U> {
+    x: T,
+    y: U,
+}
+```
+
+在枚举定义中使用泛型：
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+在函数定义中使用泛型：
+
+```rust
+fn largest<T>(list: &[T]) -> T {
+    //TODO
+}
+```
+
+在方法定义中使用泛型：
+
+```rust
+impl<T> Point<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+```
+
+注意，方法或关联函数的定义中必须在`impl`后面声明`T`，这是为了避免和限制（constraint）的泛型类型混淆：
+
+```rust
+impl Point<f32> {
+    fn distance_from_origin(&self) -> f32 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+}
+```
+
+这段代码实现的`distance_from_origin`方法仅对`f32`类型的`Point`生效。
+
+另外，方法中使用的泛型签名也未必总是和结构体自身的签名相同：
+
+```rust
+impl<X1, Y1> Point<X1, Y1> {
+    fn mixup<X2, Y2>(self, other: Point<X2, Y2>) -> Point<X1, Y2> {
+        Point {
+            x: self.x,
+            y: other.y,
+        }
+    }
+}
+```
+
+## 9.2 Trait
+
+*trait*类似于其他语言中的**接口**（interfaces），但不完全一样。
+
+trait的定义：
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+```
+
+`Summary`trait中要求实现一个`summarize`方法，并规定了方法签名。
+
+trait的**命名规范**与结构体一致（Pascal命名规范）。
+
+为trait增加默认实现：
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String {
+        String::from("(Read more...)")
+    }
+}
+```
+
+trait中的默认实现也可以调用trait中的其他方法，即使它没有默认实现。
+
+trait的实现：
+
+```rust
+pub struct Tweet {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub retweet: bool,
+}
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+}
+```
+
+使用trait的默认实现：
+
+```rust
+impl Summary for Tweet {}
+```
+
+需要注意，只有当**至少一个trait**或者**要实现trait的类型**位于crate的本地作用域时，才能为该类型实现trait。即，不能为外部类型实现外部trait。该限制被称为**相干性**（coherence），需要遵循**孤儿规则**（orphan rule）。
+
+---
+
+可以限定函数参数实现了某一trait：
+
+```rust
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+
+//完整形式的trait bound
+pub fn notify<T: Summary>(item: &T) {
+    println!("Breaking news! {}", item.summarize());
+}
+```
+
+从而调用该参数有关trait的实现。
+
+第二种完整的trait bound适用于较复杂的场景：
+
+```rust
+//不使用trait bound
+pub fn notify(item1: &impl Summary, item2: &impl Summary) {
+}
+
+//使用trait bound
+pub fn notify<T: Summary>(item1: &T, item2: &T) {
+
+}
+```
+
+有时候也需要同时满足多个trait：
+
+```rust
+pub fn notify(item: &(impl Summary + Display)) {
+
+}
+
+//trait bound
+pub fn notify<T: Summary + Display>(item: &T) {
+
+}
+```
+
+复杂的trait bound也可以使用`where`进行简化：
+
+```rust
+fn some_function<T: Display + Clone, U: Clone + Debug>(t: &T, u: &U) {
+
+}
+
+//使用where简化
+fn some_funtion<T, U>(t: &T, u:&U)
+    where T: Display + Clone,
+          U: Clone + Debug
+{
+
+}
+```
+
+---
+
+实现某一trait的类型也可以作为返回值：
+
+```rust
+fn return_summarizable() -> impl Summary {
+    Tweet {
+        username: String::from("horse_ebooks"),
+        content: String::from(
+            "of course, as you probably already know, people",
+        ),
+        reply: false,
+        retweet: false,
+    }
+}
+```
+
+当需要返回都实现了同一trait的不同类型时，就需要使用trait对象：
+
+```rust
+//TODO
+```
+
+通过trait bound可以有条件地实现泛型方法：
+
+```rust
+impl<T: Display + PartialOrd> Pair<T> {
+}
+```
+
+也可以通过trait bound有条件地实现trait：
+
+```rust
+impl<T: Display> ToString for T {
+}
+```
+
+这种对任何满足特定trait bound的类型都实现trait，被称为**blanket implementations**。
+
+### 9.3 生命周期
+
+**生命周期**（lifetimes）是一种特殊的泛型，它保障了引用的有效性。
+
+Rust编译器具有**借用检查器**（borrow checker），它通过比较作用域来确保借用的有效性。
