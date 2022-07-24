@@ -1303,7 +1303,7 @@ impl<X1, Y1> Point<X1, Y1> {
 }
 ```
 
-## 9.2 Trait
+### 9.2 Trait
 
 *trait*类似于其他语言中的**接口**（interfaces），但不完全一样。
 
@@ -1459,3 +1459,69 @@ impl<T: Display> ToString for T {
 **生命周期**（lifetimes）是一种特殊的泛型，它保障了引用的有效性。
 
 Rust编译器具有**借用检查器**（borrow checker），它通过比较作用域来确保借用的有效性。
+
+有效的引用（借用）：被引用的数据应当拥有比引用者更长的生命周期。
+
+生命周期注解：
+
+```rust
+&i32        // 引用
+&'a i32     // 带有显式生命周期的引用
+&'a mut i32 // 带有显式生命周期的可变引用
+```
+
+使用生命周期注解：
+
+```rust
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+```
+
+泛型生命周期`'a`的具体生命周期等同于`x`和`y`的生命周期中较小的那个。
+
+---
+
+当需要定义包含引用的结构体时，就需要为每一个引用添加生命周期注解：
+
+```rust
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+```
+
+为这类结构体实现方法：
+
+```rust
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+}
+```
+
+---
+
+生命周期省略规则：
+
+0. 函数或方法的参数的生命周期被称为**输入生命周期**（input lifetimes），返回值的生命周期被称为**输出生命周期**（output lifetimes）。
+
+1. 每一个引用参数都有其自己的生命周期参数。
+
+2. 如果只存在一个输入生命周期参数，则所有输出生命周期参数都使用该参数。
+
+3. 如果输入生命周期参数中有一个参数是`&self`或`&mut self`，则所有输出生命周期参数都使用`self`的生命周期参数。
+
+---
+
+静态生命周期存活于整个程序期间：
+
+```rust
+let s: &'static str = "I have a static lifetime.";
+```
+
+## 10. 自动化测试
