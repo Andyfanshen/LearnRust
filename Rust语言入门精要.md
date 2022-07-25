@@ -835,6 +835,8 @@ pub fn add_to_waitlist() {}
 
 简单来说，当单个文件内容较大的时候，可以在同级目录下创建一个与该文件同名的文件夹，然后将文件中的模块拆分成多个独立的文件装入这个文件夹中。模块之间的组织关系仍然维持不变，但将复杂的模块结构拆散到多个文件中可以控制单个文件的大小。
 
+---
+
 另一种组织模块的方式是：
 
 1. 在某个文件夹下创建`mod.rs`文件
@@ -1525,3 +1527,157 @@ let s: &'static str = "I have a static lifetime.";
 ```
 
 ## 10. 自动化测试
+
+测试函数体通常执行三种操作：
+
+1. 设置所需的数据或状态
+
+2. 运行被测代码
+
+3. 断言结果是否符合期望
+
+测试有两个主要分类：
+
+- **单元测试**（unit tests）：在隔离的环境中逐个测试模块或私有接口。
+
+- **集成测试**（integration tests）：以外部代码测试公有接口。
+
+---
+
+Rust中的属性注解：
+
+```rust
+#[test]
+fn it_works() {}
+```
+
+Rust中，单元测试的规范是在每个文件中创建包含测试函数的`tests`模块，并使用`cfg(test)`标注模块。`#[cfg(test)]`注解告诉Rust只在执行`cargo test`时才编译和运行测试代码，而在运行`cargo build`时不这么做：
+
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+}
+```
+
+在模块注解中，`cfg`属性代表configuration，注明该内容只应被包含在特定配置的选项中。
+
+Cargo只会在使用`cargo test`运行测试时才编译测试模块，包括测试模块中可能存在的帮助函数，以及标注为`#[test]`的测试函数。
+
+测试模块中可以通过`use super::*`将上一级模块中的所有项都引入测试模块的作用域，这样就可以根据需求对私有函数进行测试。
+
+---
+
+编写测试时，通常会使用断言宏：
+
+```rust
+assert!();//断言是否为true
+assert_eq!();//断言是否相等
+assert_ne!();//断言是否不等
+```
+
+可以向断言宏传递一个可选的失败信息参数；任何超过必须参数的部分都会传递给`format!`宏：
+
+```rust
+assert!(
+    result.contains("Carol"),
+    "Greeting did not contain name, value was '{}'",
+    result
+);
+```
+
+---
+
+另一些情况下测试需要检查是否如期发生了`panic`，这就需要用到`should_panic`注解：
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn greater_than_100() {
+        Guess::new(200);
+    }
+}
+```
+
+可以进一步提供panic信息：
+
+```rust
+#[should_panic(expected = "Guess value must be less than or equal to 100")]
+```
+
+---
+
+还有一些情况下可能需要使用`Result<T, E>`编写测试：
+
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() -> Result<(), String> {
+        if 2 + 2 == 4 {
+            Ok(())
+        } else {
+            Err(String::from("two plus two does not equal four"))
+        }
+    }
+}
+```
+
+这样就可以在函数体中使用`?`运算符了。但不要对这类测试使用`#[should_panic]`注解，而且也不要对`Result<T, E>`值使用`?`来断言，应当使用`assert!(value.is_err())`。
+
+---
+
+`cargo test`命令的参数根据分隔符`--`划分，之前的是传递给`cargo test`命令的参数，之后的是传递给生成的测试二进制文件的参数：
+
+```shell
+cargo test --help #cargo test的帮助信息
+cargo test -- --help #test二进制文件的帮助信息
+```
+
+`cargo test`默认并行地运行所有测试。
+
+`cargo test -- --test-threads=1`限制仅使用一个线程运行所有测试。
+
+`cargo test -- --show-output`显示成功测试的输出。（否则`println!`输出会被截获）
+
+`cargo test test_fn_name`指定运行的测试。（过滤运行所有匹配的测试）
+
+`cargo test -- --ignored`只运行属性注解为`#[ignore]`的测试。（默认不运行）
+
+`cargo test -- --include-ignored`运行包括属性注解为`#[ignore]`在内的测试。
+
+---
+
+创建**集成测试**需要先创建一个*tests*目录（与*src*同级）。`Cargo`会将其中的每一个测试文件都当作单独的crate编译：
+
+```rust
+use adder;
+
+#[test]
+fn it_adds_two() {
+    assert_eq!(4, adder::add_two(2));
+}
+```
+
+*tests*目录中的文件不需要标注`#[cfg(test)]`。
+
+可以通过`cargo test --test test_file_name`来运行某个集成测试文件中的所有测试。
+
+由于`Cargo`默认会将*tests*中的每一个文件都当作集成测试文件，当需要在测试文件中构建一些公共模块时，可以通过创建子目录并添加`mod.rs`文件的形式来表明这是公共模块。
+
+---
+
+文档测试
+
+---
+
+最后需要注意的是，二进制crate（如`src/main.rs`）中定义的函数无法通过集成测试（无法访问到`main.rs`中的函数）。
+
+## 11. 常规开发流程
