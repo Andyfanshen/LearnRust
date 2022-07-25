@@ -1076,7 +1076,7 @@ panic = 'abort'
 
 发生panic时，在**Windows**系统中可以通过`$env: RUST_BACKTRACE=1`设置环境变量来得到backtrace：
 
-```shell
+```powershell
 $env: RUST_BACKTRACE=1; cargo run
 ```
 
@@ -1636,7 +1636,7 @@ mod tests {
 
 `cargo test`命令的参数根据分隔符`--`划分，之前的是传递给`cargo test`命令的参数，之后的是传递给生成的测试二进制文件的参数：
 
-```shell
+```powershell
 cargo test --help #cargo test的帮助信息
 cargo test -- --help #test二进制文件的帮助信息
 ```
@@ -1681,3 +1681,88 @@ fn it_adds_two() {
 最后需要注意的是，二进制crate（如`src/main.rs`）中定义的函数无法通过集成测试（无法访问到`main.rs`中的函数）。
 
 ## 11. 常规开发流程
+
+Rust项目的常规开发流程：
+
+1. 基本功能的实现
+
+2. 重构以改进模块性
+
+3. 错误处理
+
+4. 测试驱动开发（TDD）
+
+---
+
+Rust中获取命令行参数可以通过`std::env::args`迭代器：
+
+```rust
+use std::env;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
+}
+```
+
+---
+
+重构和拆分模块一般按照如下顺序：
+
+- 将程序拆分为`main.rs`和`lib.rs`，将程序逻辑放入`lib.rs`中。
+
+- 当命令行解析逻辑较小时，可以保留在`main.rs`中。
+
+- 当命令行解析开始变得复杂时，将其从`main.rs`提取到`lib.rs`中。
+
+最终，`main`函数的职责为：
+
+- 调用命令行解析逻辑
+
+- 设置其他配置
+
+- 调用`lib.rs`中的`run`函数
+
+- 如果`run`函数可能返回错误，则处理该错误
+
+即，`main.rs`处理程序运行，而`lib.rs`处理真正的业务逻辑。
+
+---
+
+测试驱动开发模式按照如下顺序：
+
+1. 编写一个（失败的）测试，并运行它以确保失败的原因是你所期望的。
+
+2. 编写或修改足够的代码来使新的测试通过。
+
+3. 重构刚刚增加或修改的代码，并确保测试仍然能通过。
+
+4. 重复以上步骤。
+
+---
+
+Rust中，通过`env::var("ENV_VARIABLE").is_err()`来获取环境变量是否被设置。
+
+**Windows**中使用PowerShell设置环境变量：
+
+```powershell
+$env: ENV_VARIABLE=1;
+```
+
+---
+
+重定向输出流到指定的文件中：
+
+```powershell
+cargo run > output.txt
+```
+
+---
+
+将错误打印到标注错误流则使用`eprintln!`宏替代`println!`宏：
+
+```rust
+eprintln!("Some Problems");
+```
+
+## 12. 迭代器与闭包
