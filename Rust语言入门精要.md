@@ -1766,3 +1766,89 @@ eprintln!("Some Problems");
 ```
 
 ## 12. 迭代器与闭包
+
+### 12.1 闭包
+
+Rust中的**闭包**（closures）是可以保存在变量中传递的匿名函数。不同于函数，闭包不要求在参数和返回值上注明类型，闭包还允许捕获调用者作用域中的值。
+
+闭包的定义以一对竖线`|`开始，在`|`中指定闭包的参数，闭包体存放在之后的大括号内：
+
+```rust
+let expensive_closure = |num| {
+    println!("calculating slowly...");
+    thread::sleep(Duration::from_secs(2));
+    num
+};
+
+expensive_closure(10);
+```
+
+调用闭包的地方通常离定义闭包的地方不远，所以编译器很容易推断参数和返回值的类型。
+
+当闭包体只有一行时，甚至可以去掉大括号：
+
+```rust
+let add_one = |x| x + 1;
+```
+
+经常会将闭包存放在结构体、枚举或函数参数中，这时就需要使用泛型和trait bound：
+
+```rust
+struct Cacher<T>
+where
+    T: Fn(u32) -> u32,
+{
+    calculation: T,
+    value: Option<u32>,
+}
+```
+
+所有的闭包都实现了`Fn`、`FnMut`或`FnOnce`三个trait中的一个。（函数也实现了这三个trait，不需要捕获环境值得情况下也可以使用函数）
+
+闭包可以捕获环境值：
+
+```rust
+fn main() {
+    let x = 4;
+
+    let equal_to_x = |z| z == x;
+
+    let y = 4;
+
+    assert!(equal_to_x(y));
+}
+```
+
+但从环境中捕获值是会产生额外开销的。
+
+闭包通过三种方式捕获环境，对应函数三种获取参数的方式：获取所有权、可变借用、不可变借用。
+
+这三种捕获方式被编码为三个trait：
+
+- `FnOnce`：消费周围环境中捕获的变量，因为所有权被移动进闭包，所以只能调用一次。
+
+- `FnMut`：获取周围环境变量的可变借用。
+
+- `Fn`：获取周围环境变量的不可变借用。
+
+Rust会根据闭包对环境变量的使用方式自动推断需要实现的trait。
+
+当需要强制闭包获取环境变量所有权时，可以在参数列表前使用`move`关键字：
+
+```rust
+fn main() {
+    let x = vec![1, 2, 3];
+
+    let equal_to_x = move |z| z == x;
+
+    let y = vec![1, 2, 3];
+
+    assert!(equal_to_x(y));
+}
+```
+
+但需要注意，添加`move`关键字并不影响编译器推断闭包所需要实现的trait。
+
+大部分情况下，当需要指定闭包的trait bound时都可以从`Fn`开始，然后根据编译器的提示决定是否需要`FnMut`或`FnOnce`。
+
+### 12.2 迭代器
