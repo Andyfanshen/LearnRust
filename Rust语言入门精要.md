@@ -1852,3 +1852,68 @@ fn main() {
 大部分情况下，当需要指定闭包的trait bound时都可以从`Fn`开始，然后根据编译器的提示决定是否需要`FnMut`或`FnOnce`。
 
 ### 12.2 迭代器
+
+**迭代器**（iterator）负责遍历序列中的每一个元素并决定序列何时结束。
+
+Rust中的迭代器是**惰性的**（lazy），直到使用前都不会产生效果。
+
+```rust
+let v1 = vec![1, 2, 3];
+
+let v1_iter = v1.iter();
+
+for val in v1_iter {
+    println!("Got: {}", val);
+}
+```
+
+所有的迭代器都实现了`Iterator`trait，这是一个定义在标准库中的trait：
+
+```rust
+pub trait Iterator {
+    type Item;
+    fn next(&mut self) -> Option<Self::Item>;
+}
+```
+
+如果需要直接调用迭代器上的`next`方法，则需要迭代器本身是可变的，因为`next`方法消费（修改）了迭代器：
+
+```rust
+let v1 = vec![1, 2, 3];
+
+let mut v1_iter = v1.iter();
+
+assert_eq!(v1_iter.next(), Some(&1));
+```
+
+`for`循环不需要迭代器可变，这是因为`for`循环会获取迭代器的所有权并在后台使迭代器可变。
+
+`iter`方法生成的是对象的不可变引用的迭代器；如果需要获取具备对象的所有权的迭代器，则可以调用`into_iter`方法；如果需要获取具备对象的可变引用的迭代器，则可以调用`iter_mut`方法。
+
+---
+
+`Iterator`trait中有一些标准库提供的实用方法，但其中有些方法调用了`next`方法而消耗了迭代器，这会使得调用之后迭代器不再能被继续使用，典型的例子是`sum`方法：
+
+```rust
+let v1 = vec![1, 2, 3];
+
+let v1_iter = v1.iter();
+
+let total: i32 = v1_iter.sum();
+```
+
+这类方法被称为**消耗适配器**（consuming adaptors）。
+
+还有一类被称为**迭代适配器**（iterator adaptors）的方法，允许生成新的迭代器，典型的例子是使用`map`：
+
+```rust
+let v1 = vec![1, 2, 3];
+
+let v2 = v1.iter().map(|x| x + 1).collect();
+```
+
+常用的迭代适配器还有`filter`，它接收一个使用迭代器中的项并返回布尔值的闭包，如果返回值为`true`则将项包含到新的迭代器中。
+
+---
+
+可以实现`Iterator`trait来创建自定义的迭代器。
