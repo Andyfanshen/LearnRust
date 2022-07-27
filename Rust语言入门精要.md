@@ -1003,8 +1003,6 @@ opt-level = 3
 
 需要注意的是，各crate中对外部crate的依赖依然要在各crate的`Cargo.toml`中标注，但工作空间会保证整个项目都使用相同的外部crate。
 
-
-
 ## 7. 集合
 
 ### 7.1 vector
@@ -2114,3 +2112,41 @@ impl Iterator for Counter {
 ```
 
 ## 13. 智能指针
+
+**智能指针**（smart pointers）通常拥有数据的所有权，而引用只是借用数据。
+
+Rust中，`String`和`Vec<T>`类型也都属于智能指针。
+
+智能指针通常使用结构体实现，与常规结构体的区别在于，智能指针实现了`Deref`和`Drop`trait。`Deref`trait允许智能指针结构体实例表现得像引用一样；`Drop`trait允许自定义智能指针离开作用域时运行的代码。
+
+标准库中其他常用的智能指针包括：
+
+- `Box<T>`：用于在堆上分配数据
+
+- `Rc<T>`：引用计数类型，数据可以有多个所有者
+
+- `Ref<T>`和`RefMut<T>`，通过`RefCell<T>`访问
+
+---
+
+使用`Box<T>`在堆上存储一个`i32`：
+
+```rust
+let b = Box::new(5);
+println!("b = {b}");
+```
+
+在堆上存储`i32`并不常见，更适合`Box`的地方是创建递归类型：
+
+```rust
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main() {
+    let list = Cons(1, Box::new(Cons(2, Box::new(Cons(3, Box::new(Nil))))));
+}
+```
