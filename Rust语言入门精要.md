@@ -2150,3 +2150,37 @@ fn main() {
     let list = Cons(1, Box::new(Cons(2, Box::new(Cons(3, Box::new(Nil))))));
 }
 ```
+
+`Deref`trait提供了**Deref强制转换**（deref coercions），使得对智能指针的引用传递就如同对其内数据本身的引用传递一样：
+
+```rust
+fn hello(name: &str) {
+    println!("Hello, {}!", name);
+}
+
+fn main() {
+    let m = String::from("Rust");
+    hello(&m);
+}
+```
+
+可变引用也有相应的Deref强制转换。
+
+总的来说，有三种情况会发生Deref强制转换：
+
+- 当`T: Deref<Target=U>`时，从`&T`转换到`&U`
+
+- 当`T: DerefMut<Target=U>`时，从`&mut T`转换到`&mut U`
+
+- 当`T: Deref<Target=U>`时，从`&mut T`转换到`&U`
+
+Rust不允许主动调用`Drop`方法，但可以通过标准库提供的`std::mem::drop`来提前释放：
+
+```rust
+fn main() {
+    let s = String::from("some data");
+    drop(s);
+}
+```
+
+---
