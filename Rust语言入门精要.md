@@ -2184,3 +2184,122 @@ fn main() {
 ```
 
 ---
+
+`Rc<T>`是**引用计数**（referece counting）智能指针，当不再有引用时就会被清理。
+
+使用`Rc<T>`共享数据：
+
+```rust
+enum List {
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+use std::rc::Rc;
+
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    let b = Cons(3, Rc::clone(&a));
+    let c = Cons(4, Rc::clone(&a));
+}
+```
+
+每次调用`Rc::clone`都会增加相应的引用计数。
+
+`Rc<T>`中是不可变引用，如果需要可变性，可以通过`RefCell<T>`和内部可变性模式。
+
+---
+
+**内部可变性**（interior mutability）是指，一个值可以在方法内部修改自身，而在值方法的外部则不可以。内部可变性不违反借用规则，它将在运行时检查借用规则。
+
+`RefCell<T>`代表其中数据唯一的所有权，运行时会依此检查借用规则。
+
+例如当一个需要实现的trait方法获取的是不可变引用：
+
+```rust
+pub trait Messenger {
+    fn send(&self, msg: &str);
+}
+```
+
+为了能在特定场合下对不可变引用中的数据进行修改，就可以使用`RefCell<T>`：
+
+```rust
+use std::cell::RefCell;
+
+struct MockMessenger {
+    sent_messages: RefCell<Vec<String>>,
+}
+
+impl Messenger for MockMessenger {
+    fn send(&self, message: &str) {
+        self.sent_messages.borrow_mut().push(String::from(message));
+    }
+}
+```
+
+`RefCell<T>`的`borrow`方法返回`Ref<T>`类型的智能指针，`borrow_mut`方法返回`RefMut<T>`类型的智能指针。
+
+`RefCell<T>`通过记录当前活动的`Ref<T>`和`RefMut<T>`实现了在运行时遵守借用规则。
+
+另外，结合`Rc<T>`和`RefCell<T>`可以实现多个可变数据所有者：
+
+```rust
+#[derive(Debug)]
+enum List {
+    Cons(Rc<RefCell<i32>>, Rc<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+fn main() {
+    let value = Rc::new(RefCell::new(5));
+    let a = Rc::new(Cons(Rc::clone(&value), Rc::new(Nil)));
+    let b = Cons(Rc::new(RefCell::new(3)), Rc::clone(&a));
+    let c = Cons(Rc::new(RefCell::new(4)), Rc::clone(&a));
+    *value.borrow_mut() += 10;
+    println!("a after = {:?}", a);
+    println!("b after = {:?}", b);
+    println!("c after = {:?}", c);
+}
+```
+
+但如果使用这类方法修改引用对象则可能产生循环引用，进而造成内存泄漏。
+
+解决内存泄漏有几种方式：
+
+- 重新组织数据结构，使得一部分引用拥有所有权而另一部分没有。
+
+- 通过自动化测试、代码评审、软件开发最佳实践等方式使其最小化。
+
+- 通过`Weak<T>`传递**弱引用**（weak reference），当强引用归零时自动清理。
+
+调用`Rc::clone`会增加强引用，而调用`Rc::downgrad`则是传递弱引用。强引用共享了`Rc<T>`实例的所有权，而弱引用没有所有权。为了确保使用弱引用时的有效性，可以通过`upgrade`方法判断，其返回值是`Option<Rc<T>>`。
+
+```rust
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    parent: RefCell<Weak<Node>>,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+```
+
+---
+
+选择`Box<T>`，`Rc<T>`或`RefCell<T>`的依据：
+
+- `Rc<T>`允许相同数据有多个所有者；`Box<T>`和`RefCell<T>`是单一所有者。
+
+- `Box<T>`允许编译期执行不可变或可变借用检查；`Rc<T>`仅允许编译期执行不可变借用检查；`RefCell<T>`允许在运行时执行不可变或可变借用检查。
+
+- `RefCell<T>`可以在即使自身不可变的情况下，修改其内部的值。
+
+## 14. 并发
