@@ -2303,3 +2303,104 @@ struct Node {
 - `RefCell<T>`可以在即使自身不可变的情况下，修改其内部的值。
 
 ## 14. 并发
+
+Rust中，使用`spawn`创建新线程：
+
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    thread::spawn(|| {
+        for i in 1..10 {
+            println!("hi number {} from the spawned thread!", i);
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    for i in 1..5 {
+        println!("hi number {} from the main thread!", i);
+        thread::sleep(Duration::from_millis(1));
+    }
+}
+```
+
+主线程结束会终止一切线程，可以使用`join`等待所有线程结束：
+
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn main() {
+    let handle = thread::spawn(|| {
+        for i in 1..10 {
+            println!("hi number {} from the spawned thread!", i);
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    for i in 1..5 {
+        println!("hi number {} from the main thread!", i);
+        thread::sleep(Duration::from_millis(1));
+    }
+
+    handle.join().unwrap();
+}
+```
+
+通过调用线程返回值`JoinHandle`的`join`方法，可以阻塞当前线程直到`JoinHandle`中的线程执行结束。
+
+在使用`spawn`创建线程闭包时，经常需要捕获环境变量，因为各线程之间的有效性无法保证，所以必须将环境变量`move`进线程中：
+
+```rust
+use std::thread;
+
+fn main() {
+    let v = vec![1, 2, 3];
+
+    let handle = thread::spawn(move || {
+        println!("Here's a vector: {:?}", v);
+    });
+
+    handle.join().unwrap();
+}
+```
+
+---
+
+常用的并发方式是**消息传递**（message passing），Rust中主要依赖**信道**（channel）传递，信道由**发送者**（transmitter）和**接收者**（receiver）组成：
+
+```rust
+use std::sync::mpsc;
+use std::thread;
+
+fn main() {
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let val = String::from("hi");
+        tx.send(val).unwrap();
+    });
+
+    let received = rx.recv().unwrap();
+    println!("Got: {}", received);
+}
+```
+
+其中，`mpsc`是**多个生产者，单个消费者**的缩写。`mpsc::channel`返回一个元组，第一个元素是发送者，第二个元素是接收者。
+
+发送者的`send`方法获取需要放入（move进）信道的值，该方法返回`Result<T, E>`。
+
+接收者有两个常用的方法：`recv`和`try_recv`。其中，`recv`会阻塞主线程直到能从信道中接收到一个值，而`try_recv`则不会阻塞。它们的返回值也都是`Result<T, E>`，`recv`的`Err`返回值表明信道的发送端关闭；`try_recv`的`Err`返回值则表明当前没有任何消息。
+
+接收者也有两个相应的迭代器：`try_iter`和`into_iter`，区别也在于是否会阻塞。
+
+当需要多个生产者时，可以克隆发送者：
+
+```rust
+let (tx, rx) = mpsc::channel();
+
+let tx1 = tx.clone();
+```
+
+---
