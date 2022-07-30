@@ -2404,3 +2404,92 @@ let tx1 = tx.clone();
 ```
 
 ---
+
+另一种常用的并发方式是**共享状态**（shared state）。
+
+Rust中使用**互斥器**（mutex）：
+
+```rust
+use std::sync::Mutex;
+
+fn main() {
+    let m = Mutex::new(5);
+
+    {
+        let mut num = m.lock().unwrap();
+        *num = 6;
+    }
+
+    println!("m = {:?}", m);
+}
+```
+
+对`Mutex<T>`类型调用`lock`方法返回一个`MutexGuard`智能指针，指向其内部的数据。该智能指针在离开作用域时自动释放锁。
+
+但`Mutex<T>`如果想要在线程间传递，无法通过`Rc<T>`实现，因为后者不支持线程间操作。
+
+使用原子引用计数`Arc<T>`：
+
+```rust
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+fn main() {
+    let counter = Arc::new(Mutex::new(0));
+    let mut handles = vec![];
+
+    for _ in 0..10 {
+        let counter = Arc::clone(&counter);
+        let handle = thread::spawn(move || {
+            let mut num = counter.lock().unwrap();
+
+            *num += 1;
+        });
+        handles.push(handle);
+    }
+}
+```
+
+---
+
+为类型实现`Send`trait，可以使类型的所有权在线程间传递。几乎所有的Rust类型都实现了`Send`trait，但有一些例外，比如`Rc<T>`。完全由实现了`Send`trait组成的类型也都是自动实现了`Send`trait的。
+
+为类型实现`Sync`trait，可以使类型的引用在多个线程中被安全地使用。即，如果类型`T`的不可变引用`&T`实现了`Send`trait，则`T`实现了`Sync`trait。同样的，完全由实现了`Sync`trait组成的类型也都是自动实现了`Sync`trait的。
+
+`Send`trait和`Sync`trait都是标记`trait`，甚至不需要实现任何方法。但实现它们会涉及到不安全代码。
+
+---
+
+## 15. 面向对象
+
+使用trait对象：
+
+```rust
+pub trait Draw {
+    fn draw(&self);
+}
+
+pub struct Screen {
+    pub components: Vec<Box<dyn Draw>>,
+}
+
+impl Screen {
+    pub fn run(&self) {
+        for component in self.components.iter() {
+            component.draw();
+        }
+    }
+}
+```
+
+`Box<dyn Draw>`是一个trait对象，它指代任何实现了`Draw`trait的类型。
+
+相较于使用trait bound，trait对象不要求`Vec`中的数据类型完全一致，这提供了较大的灵活性。但trait对象执行动态分发，相较于泛型的静态分发，损失了一部分性能和优化空间。
+
+trait对象中的方法需要符合对象安全规则：
+
+- 返回值不是`Self`
+
+- 没有泛型类型的参数
+
+---
