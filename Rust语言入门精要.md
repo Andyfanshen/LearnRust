@@ -752,6 +752,16 @@ match number{
 }
 ```
 
+该例也可以使用`|`语法表示：
+
+```rust
+let number = 9;
+match number{
+    3 | 7 => (),
+    other => println!("{other}"),
+}
+```
+
 该例中的`other`将会绑定除`3`和`7`之外的一切值；但如果不需要绑定值，则可以使用占位符`_`：
 
 ```rust
@@ -760,6 +770,27 @@ match number{
     3 => (),
     7 => (),
     _ => println!("other number"),
+}
+```
+
+可以通过范围语法（Range）匹配范围值：
+
+```rust
+let x = 5;
+match x {
+    1..=5 => println!("one through five"),
+    _ => println!("something else"),
+}
+```
+
+范围语法还接受`char`值：
+
+```rust
+let x = 'c';
+match x {
+    'a'..='j' => println!("early ASCII letter"),
+    'k'..='z' => println!("late ASCII letter"),
+    _ => println!("something else"),
 }
 ```
 
@@ -1585,8 +1616,34 @@ fn return_summarizable() -> impl Summary {
 当需要返回都实现了同一trait的不同类型时，就需要使用trait对象：
 
 ```rust
-//TODO
+pub trait Draw {
+    fn draw(&self);
+}
+
+pub struct Screen {
+    pub components: Vec<Box<dyn Draw>>,
+}
+
+impl Screen {
+    pub fn run(&self) {
+        for component in self.components.iter() {
+            component.draw();
+        }
+    }
+}
 ```
+
+`Box<dyn Draw>`是一个trait对象，它指代任何实现了`Draw`trait的类型。
+
+相较于使用trait bound，trait对象不要求`Vec`中的数据类型完全一致，这提供了较大的灵活性。但trait对象执行动态分发，相较于泛型的静态分发，损失了一部分性能和优化空间。
+
+trait对象中的方法需要符合对象安全规则：
+
+- 返回值不是`Self`
+
+- 没有泛型类型的参数
+
+---
 
 通过trait bound可以有条件地实现泛型方法：
 
@@ -2268,6 +2325,8 @@ fn main() {
 }
 ```
 
+注：打印`List`需要为`List`启用`#[derive(Debug)]`标注来实现`Debug`trait。
+
 但如果使用这类方法修改引用对象则可能产生循环引用，进而造成内存泄漏。
 
 解决内存泄漏有几种方式：
@@ -2460,36 +2519,51 @@ fn main() {
 
 ---
 
-## 15. 面向对象
+## 15. 模式匹配
 
-使用trait对象：
+使用`while let`条件循环：
 
 ```rust
-pub trait Draw {
-    fn draw(&self);
-}
-
-pub struct Screen {
-    pub components: Vec<Box<dyn Draw>>,
-}
-
-impl Screen {
-    pub fn run(&self) {
-        for component in self.components.iter() {
-            component.draw();
-        }
-    }
+let mut stack = vec![1, 2, 3];
+while let Some(top) = stack.pop() {
+    println!("{top}");
 }
 ```
 
-`Box<dyn Draw>`是一个trait对象，它指代任何实现了`Draw`trait的类型。
+`for`循环中解构：
 
-相较于使用trait bound，trait对象不要求`Vec`中的数据类型完全一致，这提供了较大的灵活性。但trait对象执行动态分发，相较于泛型的静态分发，损失了一部分性能和优化空间。
+```rust
+let v = vec!['a', 'b', 'c'];
+for (index, value) in v.iter().enumerate() {
+    println!("{} is at index {}", value, index);
+}
+```
 
-trait对象中的方法需要符合对象安全规则：
+函数参数中使用模式匹配：
 
-- 返回值不是`Self`
+```rust
+fn print_coordinates(&(x, y): &(i32, i32)) {
+    println!("Current location: ({}, {})", x, y);
+}
 
-- 没有泛型类型的参数
+fn main() {
+    let point = (3, 5);
+    print_coordinates(&point);
+}
+```
 
 ---
+
+模式有两种形式：**可反驳的**（refutable）和**不可反驳的**（irrefutable）。
+
+能匹配任何传递的可能值的模式是**不可反驳的**，比如`let x = 6`，它不可能匹配失败。
+
+对某些值可能匹配失败的模式是**可反驳的**，比如`if let Some(x) = a_value`。
+
+函数参数、`let`语句和`for`循环只能接受不可反驳的模式。
+
+`if let`和`while let`只能接受可反驳的模式。
+
+---
+
+解构并分解值
