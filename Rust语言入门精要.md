@@ -2566,4 +2566,74 @@ fn main() {
 
 ---
 
-解构并分解值
+解构结构体：
+
+```rust
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+fn main() {
+    let p = Point {x:0, y:7};
+    let Point { x, y } = p;
+    match p {
+        Point { x, y:0 } => println!("{x}"),
+        Point { x, y } => println!("{x}, {y}"),
+    }
+}
+```
+
+解构枚举也具有相似的形式：
+
+```rust
+enum Message {
+    Move { x: i32, y: i32 },
+    ChangeColor(u8, u8, u8),
+}
+
+fn main() {
+    let msg = Message::ChangeColor(0, 160, 255);
+
+    match msg {
+        Message::Move { x, y } => println!("{x}, {y}"),
+        Message::ChangeColor(r, g, b) => println!("{r}, {g}, {b}"),
+    }
+}
+```
+
+即使是**嵌套的**结构体和枚举，也可以采用上述形式解构。
+
+当需要忽略模式匹配中的某个值时，可以使用`_`：
+
+```rust
+fn foo(_: i32, y: i32) {
+    println!("This code only uses the y parameter: {}", y);
+}
+
+fn main() {
+    foo(3, 4);
+}
+```
+
+也可以只忽略特定位置上的值：
+
+```rust
+let numbers = (2, 4, 8, 16, 32);
+match numbers {
+    (first, _, third, _, fifth) => {
+        println!("Some numbers: {}, {}, {}", first, third, fifth)
+    }
+}
+```
+
+当需要或略多个值时，可以用`..`：
+
+```rust
+let numbers = (2, 4, 8, 16, 32);
+match numbers {
+    (first, .. ) => {
+        println!("Some numbers: {}", first)
+    }
+}
+```
