@@ -2637,3 +2637,255 @@ match numbers {
     }
 }
 ```
+
+还可以通过**匹配守卫**（match guard）在分支后由`if`提供额外条件：
+
+```rust
+let num = Some(4);
+let y = 10;
+match num {
+    Some(x) if x == y => println!("Matched"),
+    _ => println!("Not matched"),
+}
+```
+
+可以在存放变量时，通过`@`运算符来测试其中的值是否匹配：
+
+```rust
+let num = Some(5);
+match num {
+    Some(x @ 3..=7) => println!("In range: {}", x),
+    Some(10..=12) => println!("Another range"),
+    _ => println!("Out of range"),
+}
+```
+
+## 16. 高级特征
+
+### 16.1 不安全行为
+
+不安全行为可以做到的特殊操作有：
+
+- 解引用裸指针
+
+- 调用不安全的函数或方法
+
+- 访问或修改可变静态变量
+
+- 实现不安全trait
+
+- 访问`union`的字段
+
+---
+
+裸指针分为不可变和可变的，分别为`*const T`和`*mut T`。
+
+裸指针和智能指针的区别在于：
+
+- 允许忽略借用规则，可以同时拥有不可变和可变的指针，或多个指向相同位置的可变指针
+
+- 不保证指向有效的内存
+
+- 允许为空
+
+- 不能实现任何自动清理
+
+```rust
+let mut num = 5;
+let r1 = &num as *const i32;
+let r2 = &mut num as *mut i32;
+let r = 0x012345usize as *const i32;
+```
+
+裸指针的**创建**可以在安全代码中进行，但不能在不安全的代码以外**解引用**。
+
+```rust
+unsafe {
+    *r2 += 1;
+    println!("r1 is: {}", *r1);
+}
+```
+
+---
+
+调用不安全函数：
+
+```rust
+unsafe fn dangerous() {}
+unsafe {
+    dangerous();
+}
+```
+
+通过`extern`调用外部代码：
+
+```rust
+extern "C" {
+    fn abs(input: i32) -> i32;
+}
+
+fn main() {
+    unsafe {
+        println!("Absolute value of -3 according to C: {}", abs(-3));
+    }
+}
+```
+
+如果需要其他语言调用Rust函数：
+
+```rust
+#[no_mangle]
+pub extern "C" fn call_from_c() {
+    println!("Just called a Rust function from C!");
+}
+```
+
+---
+
+全局变量在Rust中被称为**静态**（static）变量：
+
+```rust
+static HELLO_WORLD: &str = "Hello, world!";
+```
+
+不可变静态变量是安全的，而访问和修改可变静态变量是**不安全**的：
+
+```rust
+static mut COUNTER: u32 = 0;
+
+fn main() {
+    unsafe {
+        println!("COUNTER: {COUNTER}");
+    }
+}
+```
+
+---
+
+实现不安全trait：
+
+```rust
+unsafe trait Foo {}
+unsafe impl Foo for i32 {}
+```
+
+### 16.2 高级trait
+
+**关联类型**（associated types）是一种类型占位符：
+
+```rust
+pub trait Iterator {
+    type Item;
+
+    fn next(&mut self) -> Option<Self::Item>;
+}
+```
+
+关联类型与泛型的区别在于，泛型在使用时需要指定具体的参数类型，而关联类型则在实现时指定，使用时无需标注类型。
+
+---
+
+运算符重载：
+
+```rust
+use std::ops::Add;
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+impl Add for Point {
+    type Output = Point;
+
+    fn add(self, other: Point) -> Point {
+        Point {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+```
+
+`Add`trait的定义中用到了泛型的**默认类型参数**（default type parameters）：
+
+```rust
+trait Add<Rhs=Self> {
+    type Output;
+
+    fn add(self, rhs: Rhs) -> Self::Output;
+}
+```
+
+其中的`Rhs`泛型参数的默认类型为`Self`类型。
+
+---
+
+当trait方法和类型本身的方法重名，编译器默认调用类型上的方法。
+
+如果需要调用trait上的同名方法，则需要注明trait名称：
+
+```rust
+fn main() {
+    let person = Human;
+    Pilot::fly(&person);
+    Wizard::fly(&person);
+}
+```
+
+`Pilot`trait和`Wizard`trait都有实现在`Human`类型上的`fly`方法。
+
+但如果trait方法没有`self`参数，则只能使用**完全限定语法**（fully qualified syntax）：
+
+```rust
+trait Animal {
+    fn baby_name() -> String;
+}
+
+struct Dog;
+
+impl Dog {
+    fn baby_name() -> String {
+        String::from("Spot")
+    }
+}
+
+impl Animal for Dog {
+    fn baby_name() -> String {
+        String::from("puppy")
+    }
+}
+
+fn main() {
+    println!("A baby dog is called a {}", <Dog as Animal>::baby_name());
+}
+```
+
+完全限定语法的定义为：
+
+```rust
+<Type as Trait>::function(receiver_if_method, next_arg, ...);
+```
+
+---
+
+当在trait中需要使用其他trait时，可以声明一个**超trait**（supertrait）：
+
+```rust
+use std::fmt::Display;
+
+trait OutlinePrint: Display {
+    fn outline_print(&self) {
+        println!("{}", self.to_string());
+    }
+}
+```
+
+---
+
+可以使用**newtype模式**绕开孤儿规则的限制，也就是对已有类型做一个简单封装，这样就可以在当前环境下对该类型实现特定trait。
+
+newtype模式的缺点是，需要在新类型上重新实现方法。
+
+### 16.3 高级类型
