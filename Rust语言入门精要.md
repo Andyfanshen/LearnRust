@@ -262,7 +262,7 @@ pub fn add_one(x: i32) -> i32 {
 
 除了`# Examples`这样的部分外，文档注释中经常使用的部分还有：
 
-- **Panics**：该函数可能`panic!`的场景，指导调用者避免这种情况。
+- **Panics**：该函数可能`panic!`的场景，指导调用者避免这种情况（panic!契约）。
 
 - **Errors**：描述该函数可能会出现哪些错误以及错误的原因，指导调用者采用合适的方式处理这些错误。
 
@@ -571,6 +571,27 @@ let user2 = User {
 ```
 
 但需要注意，在该例中，`user1`的`username`字段被`move`进`user2`中，从而使得`user1`无效。如果使用的字段类型是满足`Copy trait`的，则不受影响。
+
+打印输出结构体可以实现`Diplay`trait，或者对结构体标注`#[derive(Debug)]`后使用`{:?}`或`{:#?}`：
+
+```rust
+#[derive(Debug)]
+struct User {
+    active: bool,
+    username: String,
+    email: String,
+    sign_in_count: u64,
+}
+fn main() {
+    let user1 = User {
+        email: String::from("someone@example.com"),
+        username: String::from("someusername123"),
+        active: true,
+        sign_in_count: 1,
+    }; 
+    println!("{:#?}", user1);
+}
+```
 
 ---
 
@@ -2889,3 +2910,201 @@ trait OutlinePrint: Display {
 newtype模式的缺点是，需要在新类型上重新实现方法。
 
 ### 16.3 高级类型
+
+使用`type`创建**类型别名**（type alias）：
+
+```rust
+type Kilometers = i32;
+```
+
+编译器会将`Kilometers`完全当作`i32`看待。
+
+类型别名常用于减少项目中重复的代码，例如函数签名或类型注解。
+
+类型别名也经常搭配`Reuslt<T, E>`类型使用：
+
+```rust
+type Result<T> = std::result::Result<T, std::io::Error>;
+```
+
+---
+
+Rust有一个叫做`!`的特殊类型，被称为*empty type*（或者*never type*），它描述函数从不返回值：
+
+```rust
+fn bar() -> ! {}
+```
+
+这类从不返回值的函数被称为**发散函数**（diverging functions）。
+
+never type可以强制转化为任何其他类型，所以`continue`等关键字实际的值正是`!`。
+
+另外，`panic!`和`loop`也是`!`类型。
+
+---
+
+**动态大小类型**（DST）是在运行时才能确定大小的类型，`str`就是一种动态大小类型，因而无法定义`str`，但可以通过`&str`来存储地址和长度（一共两个`usize`大小）。即，必须将动态大小类型的值置于某种指针之后。
+
+trait也是一种动态大小类型，所以将trait用于trait对象时必须将它们放入指针之后，比如`&dyn Trait`或`Box<dyn Trait>`。
+
+Rust通过特定的`Sized`trait来决定类型的大小是否在编译期可知，该trait会自动为那些在编译期就知道大小的类型实现。对于泛型函数，Rust也隐式地增加了`Sized`bound：
+
+```rust
+fn generic<T: Sized>(t: T) {}
+```
+
+有一个特殊的语法是`?Sized`，该注解会覆盖泛型类型必须在编译期拥有固定大小的默认规则，使得该类型可以是动态大小类型：
+
+```rust
+fn generic<T: ?Sized>(t: &T) {}
+```
+
+### 16.4 高级函数和闭包
+
+Rust中，函数的类型为`fn`，被称为**函数指针**（function pointer）。函数指针也可以作为参数类型：
+
+```rust
+fn do_twice(f: fn(i32) -> i32, arg: i32) -> i32 {
+    f(arg) + f(arg)
+}
+```
+
+因为函数指针实现了所有的三个函数相关的闭包trait（`Fn`、`FnMut`和`FnOnce`），所以在调用函数闭包的地方总可以使用函数指针。
+
+一种只接受函数指针而不接受函数闭包的情况是，当需要与不存在闭包的外部代码交互时。例如C语言的函数可以接受函数作为参数，但C语言没有闭包。
+
+在`map`函数中使用闭包：
+
+```rust
+let list_of_numbers = vec![1, 2, 3];
+let list_of_strings: Vec<String> =
+    list_of_numbers.iter().map(|i| i.to_string()).collect();
+```
+
+在`map`函数中使用函数：
+
+```rust
+let list_of_numbers = vec![1, 2, 3];
+let list_of_strings: Vec<String> =
+    list_of_numbers.iter().map(ToString::to_string).collect();
+```
+
+---
+
+实际上，元组结构体和元组结构体枚举成员的初始化语法`()`也是一类函数，所以能用如下的方式调用：
+
+```rust
+enum Status {
+    Value(u32),
+    Stop,
+}
+let list_of_statuses: Vec<Status> = (0u32..20).map(Status::Value).collect();
+```
+
+---
+
+闭包表现为trait，所以不能直接返回闭包。需要返回trait的情况可以使用实现了该trait的具体类型，但仍然不能使用闭包，因为编译器不知道需要多少空间来存储闭包。这类情况应当使用trait对象：
+
+```rust
+fn returns_closure() -> Box<dyn Fn(i32) -> i32> {
+    Box::new(|x| x + 1)
+}
+```
+
+当然，函数指针也是可以作为返回值的：
+
+```rust
+fn return_func() -> fn(i32) -> i32 {
+    fn _inner_func(x: i32) -> i32 {
+        x + 1
+    }
+    _inner_func
+}
+
+fn main() {
+    let x = return_func()(5);
+    println!("{x}");
+}
+```
+
+---
+
+Rust中的宏分为**声明宏**（Declarative macros）和**过程宏**（Procedural macros）。其中，声明宏使用`macro_rules!`定义（因而有时也被称为“macro_rules宏”）；而过程宏有三种，分别为：
+
+- 自定义派生宏：在结构体和枚举上指定通过`derive`属性添加的代码
+
+- 类属性宏（Attribute-like）：定义可用于任意项的自定义属性
+
+- 类函数宏：看起来像函数但作用于作为参数传递的token
+
+宏的本质是一种**元编程**（metaprogramming）行为，所有的宏会在编译前展开成相应的代码。
+
+宏必须在调用**之前**定义或引入作用域。
+
+什么时候需要使用宏而不是函数？宏能够接收不同数量的参数，且宏可以给特定类型实现trait，这些都是函数无法做到的。
+
+关于Rust中宏的更多知识，可以参阅学习[Rust 宏小册](https://zjp-cn.github.io/tlborm/)和[Rust宏模式](https://conradludgate.com/posts/macros_match)。
+
+---
+
+声明宏是最常用的宏，允许我们编写一些类似于`match`表达式的代码。
+
+以`vec!`为例：
+
+```rust
+#[macro_export]
+macro_rules! vec {
+    ( $( $x:expr ),* ) => {
+        {
+            let mut temp_vec = Vec::new();
+            $(
+                temp_vec.push($x);
+            )*
+            temp_vec
+        }
+    };
+}
+```
+
+`#[macro_export]`注解表明，只要导入了定义该宏的crate，该宏就是可用的。
+
+`( $( $x:expr ),* )`是分支匹配的模式语法，全部的宏模式语法可以参考[该链接](https://doc.rust-lang.org/reference/macros-by-example.html)。其中的`$x:expr`匹配任意表达式，外层的`$()`则捕获所有匹配的值，之后的`*`表明匹配零个或多个该模式。
+
+---
+
+过程宏更像是函数，接收Rust代码作为输入，产生另一些代码作为输出。
+
+三种过程宏的工作方式是相似的。
+
+创建过程宏需要采用如下所示的代码形式：
+
+```rust
+use proc_macro;
+
+#[some_attribute]
+pub fn some_name(input: TokenStream) -> TokenStream {
+}
+```
+
+`somne_attribute`是一个使用特定宏的占位符。
+
+`TokenStream`定义于`proc_macro`crate中，过程宏接收一个`TokenStream`作为输入并生成`TokenStream`作为输出。
+
+定义过程宏的流程较为繁杂，且会随着语言版本更新，故笔记中不作详细介绍。如需获取更多相关信息，请参阅[Rust 宏小册](https://zjp-cn.github.io/tlborm/)和[Rust宏模式](https://conradludgate.com/posts/macros_match)。
+
+## 17. 常用API
+
+`dbg!`宏可以将执行的表达式和位置打印出来，方便debug：
+
+```rust
+fn main() {
+    let num = 5;
+    if dbg!(num < 6) {
+        println!("The number is less than 6.");
+    }
+}
+```
+
+---
+
+待补充。
