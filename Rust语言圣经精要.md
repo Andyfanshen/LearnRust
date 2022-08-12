@@ -1,6 +1,6 @@
 # Rust语言圣经精要
 
-Rust语言系列第二弹，《Rust语言圣经》（也就是Rust Course）内容精要。
+Rust语言系列第二弹，[《Rust语言圣经》](https://course.rs/about-book.html)（也就是Rust Course）内容精要。
 
 ## 1. Cargo项目管理
 
@@ -29,3 +29,146 @@ hammer = { version = "0.5.0" }
 color = { git = "https://github.com/bjz/color-rs" }
 geometry = { path = "crates/geometry" }
 ```
+
+---
+
+外部依赖包通常需要从`crates.io`下载，境内下载缓慢可以通过换源解决，详情参考[下载依赖太慢了？ - Rust语言圣经(Rust Course)](https://course.rs/first-try/slowly-downloading.html)
+
+## 2. 调试
+
+有时候需要按条件编译特定代码块：
+
+```rust
+if cfg!(debug_assertions) {
+    eprintln!("debug: {:?} -> {:?}", record, fields);
+}
+```
+
+上述代码仅在`debug`模式下生效，它会将`debug`信息打印到标准错误输出中。
+
+## 3. 开发
+
+### 3.1 命名规范
+
+| 条目                            | 惯例                           |
+|:----------------------------- |:---------------------------- |
+| 包 Crates                      | unclear                      |
+| 模块 Modules                    | snake_case                   |
+| 类型 Types                      | UpperCamelCase               |
+| 特征 Traits                     | UpperCamelCase               |
+| 枚举 Enumerations               | UpperCamelCase               |
+| 结构体 Structs                   | UpperCamelCase               |
+| 函数 Functions                  | snake_case                   |
+| 方法 Methods                    | snake_case                   |
+| 通用构造器 General constructors    | new or with_more_details     |
+| 转换构造器 Conversion constructors | from_some_other_type         |
+| 宏 Macros                      | snake_case!                  |
+| 局部变量 Local variables          | snake_case                   |
+| 静态类型 Statics                  | SCREAMING_SNAKE_CASE         |
+| 常量 Constants                  | SCREAMING_SNAKE_CASE         |
+| 类型参数 Type parameters          | UpperCamelCase，通常使用一个大写字母: T |
+| 生命周期 Lifetimes                | 通常使用小写字母: 'a，'de，'src        |
+| Features                      | unclear                      |
+
+---
+
+当类型发生转换时，使用`as_`、`to_`、`into_`这样的前缀来区分不同的操作：
+
+- `as_`的开销为0，调用前后对变量都是借用。
+
+- `to_`的开销昂贵，所有权可能发生变化，但都执行了相当复杂和昂贵的操作。
+
+- `into_`总会获取所有权，性能开销需要看具体实现。
+
+---
+
+读访问器（Getter）**直接使用**对应的成员数据名称命名：
+
+```rust
+pub struct S {
+    first: First,
+    second: Second,
+}
+
+impl S {
+    pub fn first(&self) -> &First {
+        &self.first
+    }
+
+    pub fn first_mut(&mut self) -> &mut First {
+        &mut self.first
+    }
+}
+```
+
+只在有且仅有**一个值**能被获取时，才可以使用`get_`前缀命名，例如`Cell::get`。
+
+---
+
+集合上的**方法**，如果返回迭代器，需要遵循命名规范，使用`iter`、`iter_mut`和`into_iter`，返回的类型也应使用`Iter`、`IterMut`和`IntoIter`：
+
+```rust
+fn iter(&self) -> Iter // Iterator<Item = &U>
+fn iter_mut(&mut self) -> IterMut // Iterator<Item = &mut U>
+fn into_iter(self) -> IntoIter //Iterator<Item = U>
+```
+
+非同构性（遍历类型与集合类型不一致）的数据集合通常根据所需类型单独命名。
+
+---
+
+其他命名规范：同类型的命名请采用一致的词序。
+
+### 3.2 更多的语言特性
+
+1. 解构赋值可以用在元组、切片和结构体上：
+   
+   ```rust
+   struct S{
+       e: i32,
+   }
+   
+   fn main() {
+       let (a, b, c, d, e);
+       (a, b) = (1, 2);
+       [c, .., d, _] = [1, 2, 3, 4, 5];
+       S { e, .. } = S { e: 5 };
+       assert_eq!([1, 2, 1, 4, 5], [a, b, c, d, e]);
+   }
+   ```
+
+2. 
+
+### 3.3 语言特性的常见QA
+
+1. 何时使用可变变量（`mut`修饰）？
+   
+   答：当需要变量值可变的灵活性，又需要避免分配内存或拷贝数据带来的额外开销时。
+
+2. 变量和常量之间的主要差异？
+   
+   答：常量不可使用`mut`修饰；常量始终不可变；常量使用`const`关键字声明；常量的声明必须标注类型。
+
+3. 何处使用常量？
+   
+   答：多出代码需要共享的不可变值（例如$\pi$）。
+
+4. 何时使用变量遮蔽（shadowing）?
+   
+   答：当作用域中不需要使用之前的变量（但仍想使用同一个变量名），或是需要给同名变量换一种数据类型时。
+
+5. 
+
+### 3.4 常用标准库方法和函数
+
+1. 整型溢出可使用这些方法处理：
+   
+   - 使用`wrapping_`方法按照补码循环溢出规则处理，例如`wrapping_add`。
+   
+   - 使用`checked_`方法在发生溢出时返回`None`值。
+   
+   - 使用`overflowing_`方法返回该值和指示是否溢出的布尔值。
+   
+   - 使用`saturating_`方法使返回值钳制在最小值和最大值之间。
+
+2. 
