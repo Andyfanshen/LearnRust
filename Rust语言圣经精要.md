@@ -234,7 +234,8 @@ fn into_iter(self) -> IntoIter //Iterator<Item = U>
 
 3. 一些常用的宏指令：
    
-   - `todo!()`：标记代码尚未实现，运行至该处将会引发错误。
+   - `todo!`：标记代码尚未实现，运行至该处将会引发错误。
+   - `format!`：格式化字符串。
 
 4. 
 
