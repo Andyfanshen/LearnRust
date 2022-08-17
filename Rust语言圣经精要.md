@@ -148,7 +148,17 @@ fn into_iter(self) -> IntoIter //Iterator<Item = U>
    println!("{}", r3);
    ```
 
-3. 
+3. 通过字符串转义可以直接输出ASCII和Unicode字符：
+   
+   ```rust
+   let byte_escape = "I'm writing \x52\x75\x73\x74!";
+   let unicode_codepoint = "\u{211D}";
+   let raw_str = "hello \\x52\\x75\\x73\\x74";
+   let raw_str = r"Escapes don't work here: \x3F \u{211D}"; //忽略所有的转义
+   let raw_str = r#"And then I said: "There is no escape!""#; //忽略一组“”
+   ```
+
+4. 
 
 ### 3.3 语言特性的常见QA
 
