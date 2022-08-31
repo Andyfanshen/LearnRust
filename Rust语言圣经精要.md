@@ -200,7 +200,7 @@ fn into_iter(self) -> IntoIter //Iterator<Item = U>
 
 10. 函数一定有返回值吗？
     
-    答：对于绝大多数情况，是的（包括空返回值`()`）；但也有一类特殊的函数永不返回，它们被称为发散函数（diverge function）。
+    答：对于绝大多数情况，是的（包括空返回值`()`，这被称为`单元类型`）；但也有一类特殊的函数永不返回，它们被称为发散函数（diverge function）。
 
 11. 所有权的规则是什么？
     
@@ -222,7 +222,27 @@ fn into_iter(self) -> IntoIter //Iterator<Item = U>
     
     答：字符串的底层是采用UTF-8编码的`[u8]`数组，直接访问字节可能会得到不完整的信息。
 
-16. 
+16. 单元结构体（Unit-like Struct）的作用是什么？
+    
+    答：当需要定义特定行为，但不关心类型内容时，可以使用单元结构体。
+
+17. 数组类型和数组切片的类型签名？
+    
+    答：数组类型是`[T; n]`，而数组切片是`[T]`。
+
+18. 循环容器与使用迭代器的对应关系？
+    
+    答：
+    
+    | 使用方法                          | 等价方法                                              | 所有权   |
+    | ----------------------------- | ------------------------------------------------- | ----- |
+    | `for item in collection`      | `for item in IntoIterator::into_iter(collection)` | 所有权转移 |
+    | `for item in &collection`     | `for item in collection.iter()`                   | 不可变借用 |
+    | `for item in &mut collection` | `for item in collection.iter_mut()`               | 可变借用  |
+    
+    
+
+19. 
 
 ### 3.4 常用标准库方法和函数
 
@@ -246,6 +266,7 @@ fn into_iter(self) -> IntoIter //Iterator<Item = U>
    
    - `todo!`：标记代码尚未实现，运行至该处将会引发错误。
    - `format!`：格式化字符串。
+   - `dbg!`：（在标准错误输出`stderr`中）打印表达式的文件名、行号、求值结果等信息。
 
 4. 
 
