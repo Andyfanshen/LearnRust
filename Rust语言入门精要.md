@@ -1277,7 +1277,7 @@ panic = 'abort'
 发生panic时，在**Windows**系统中可以通过`$env: RUST_BACKTRACE=1`设置环境变量来得到backtrace：
 
 ```powershell
-$env: RUST_BACKTRACE=1; cargo run
+$env:RUST_BACKTRACE=1; cargo run
 ```
 
 ---
