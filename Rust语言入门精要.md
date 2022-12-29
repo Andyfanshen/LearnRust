@@ -14,6 +14,15 @@ Rust的安装和工具链管理由`rustup`控制。安装完`rustup`后，可以
 
 Rust的工具链，其默认安装位置都在`~/.cargo/bin`中。在我的Windows系统中，其具体路径为`C:\Users\UserName\.cargo`。
 
+Cargo可以换源，在`~/.cargo`中创建文件`config`，并写入以下内容：
+```
+[source.crates-io]
+replace-with = 'tuna'
+
+[source.tuna]
+registry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"
+```
+
 ---
 
 Rust源码可以使用编译工具`rustc`直接编译，但更通常的做法是借助项目管理工具`cargo`，故本文仅回顾基于`cargo`的开发流程，其他流程可参考[使用rustc直接编译Rust源码](https://kaisery.github.io/trpl-zh-cn/ch01-02-hello-world.html)。
