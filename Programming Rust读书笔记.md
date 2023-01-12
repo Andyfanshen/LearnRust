@@ -4,7 +4,6 @@
 3. rustc是Rust的编译器。我们通常使用Cargo来调度编译器，必要时也可以手动调用。
 4. rustdoc是Rust的文档工具。如果在源码中以正确的形式书写注释，那么rustdoc就可以自动构建出格式美观的HTML文档。和rustc一样，我们通常使用Cargo来调度文档工具。
 5. `debug_assert!`是一种特殊的断言，仅在debug模式下生效。
-6. `raw string`保留原始字符串内容，以`r`开头，紧跟0~n个`#`字符，中间是用双引号包裹的任意unicode字符序列，然后以同样数量的`#`字符结束。
 # Rust的基础类型
 Rust的内存和线程安全性依赖于其健壮的类型系统，而Rust的灵活性则源于其泛型和特性（trait）。
 1. Rust的基础数据类型都是围绕硬件中的固定宽度数据类型设计的，这满足了绝大多数应用的需求且可以运行得非常快，如果需要任意精度的类型，可以考虑使用`num`包。
@@ -31,3 +30,4 @@ Rust的内存和线程安全性依赖于其健壮的类型系统，而Rust的灵
 22. 当需要使用包含复杂结构的原始字符串时，可以通过`r`+`#`+`""`+`#`的结构囊括起来，其中双引号前后的`#`数量保持一致。例如`r###"This raw string started with 'r###"'. Therefore it does not end until we reach a quote mark ('"') followed immediately by three pound signs ('###')."###`。
 23. 虽然类型`&mut str`是存在的，但几乎没有什么能用的方法，只有`make_ascii_uppercase`和`make_ascii_lowercase`可以使用。
 24. 对str字面值使用`to_string()`方法和`to_owned()`方法具有一样的效果。
+# 所有权和移动语义
