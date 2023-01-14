@@ -31,3 +31,4 @@ Rust的内存和线程安全性依赖于其健壮的类型系统，而Rust的灵
 23. 虽然类型`&mut str`是存在的，但几乎没有什么能用的方法，只有`make_ascii_uppercase`和`make_ascii_lowercase`可以使用。
 24. 对str字面值使用`to_string()`方法和`to_owned()`方法具有一样的效果。
 # 所有权和移动语义
+1. Vector不支持直接移动其中的某个值，因为这通常需要额外的信息来记录那些位置变为未定义的。一般通过借用来访问Vector中的值，如果需要移动，则可以考虑使用`pop()`、`swap_remove()`、`replace()`等方法。
