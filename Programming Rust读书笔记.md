@@ -71,4 +71,7 @@ Rust的内存和线程安全性依赖于其健壮的类型系统，而Rust的灵
 7. Rust的另一种错误处理方式与其他语言中的try/catch语法相似，是`Result<T, E>`类型。
 8. 可以通过`err.source()`去溯源上一级错误。
 9. `?`操作符用于错误传播。当发生错误时会立即返回包含错误的`Result`值。
-10. 
+10. 当需要自定义错误类型时，可以考虑引入`thiserror`包。
+11. 标准库的错误类型都满足trait对象`Box<dyn std::error::Error + Send + Sync + 'static>`。
+12. 标准库的错误类型具有`downcast_ref::<ErrorType>()`方法，可以从一般性的错误类型细化。
+13. 
