@@ -84,5 +84,6 @@ Rust的内存和线程安全性依赖于其健壮的类型系统，而Rust的灵
 [profile.release]
 debug = true # 在release下启用debug
 ```
-6. 在某个模块中，可以使用`pub`关键字来暴露所定义的内容，但`pub(crate)`则仅限于当前crate中全局可见，且无法被用于其他crate。
+6. 在某个模块中，可以使用`pub`关键字来暴露所定义的内容，但`pub(crate)`则仅限于当前crate中全局可见，且无法被用于其他crate。此外，还可以使用`pub(super)`来使所有父类模块可见，或是使用`pub(in <path>)`来指定特定的模块可见。
+7. 当通过`mod spores;`声明模块时，Rust将检查`spores.rs`文件和`spores/mod.rs`文件，但两者只能存在一个。当某个子模块（例如`stems`）仍然包含子模块时，则可以在`stems.rs`的同目录下创建`stems`文件夹，并在`stems.rs`中声明子模块（例如`pub mod xylem;`）。
  
