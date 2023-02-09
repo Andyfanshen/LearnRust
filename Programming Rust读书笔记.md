@@ -128,4 +128,16 @@ members = ["fern_sim", "fern_img", "fern_video"]
 # 结构体
 1. 结构体的命名规范：结构体采用`CamelCase`，字段采用`snake_case`。
 2. 在一些树形或图形结构的方法签名中，使用`self: Rc<Self>`有时是更好的选择。
-3. 
+3. Rust中的方法和关联函数是可以在多处分离定义的，这有一些好处：使结构体的定义更加简洁，很容易看到由哪些成员字段构成；`impl`模块不仅可以用于结构体方法和关联函数的定义，也可用于枚举类型和原生类型的定义（这也是Rust中不使用“对象”这一概念的原因）；`impl`语法也可以很好地和trait语法结合。
+4. 关联常数可以提供只与类型有关的常值，定义和使用如下：
+``` rust
+impl Vector2{
+    const ZERO: Vector2 = Vector2 { x: 0.0, y: 0.0 };
+    const UNIT: Vector2 = Vector2 { x: 1.0, y: 0.0 };
+}
+
+let scaled = Vector2::UNIT.scaled_by(2.0);
+```
+5. 当需要内部可变性时，可通过`Cell`类型的`get()`和`get(value)`方法实现，或是通过`RefCell`类型的`borrow()`类方法实现。
+# 枚举类型和模式
+1. 
