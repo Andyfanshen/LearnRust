@@ -116,3 +116,16 @@ debug = true # 在release下启用debug
 35. 第一次构建工程时会创建`Cargo.lock`文件，后续的构建会采用`Cargo.lock`文件中确定的各依赖库的版本。如果需要更新，则可以使用`cargo update`指令来手动更新，使所有依赖库更新到兼容的最新版本。
 36. 上传可执行项目时应当同时上传`Cargo.lock`文件；上传库包时不需要上传`Cargo.lock`，除非是一个共享库包（即`.dll`、`.dylib`或`.so`文件）。
 37. 上传包之前需要先通过`cargo package`指令将项目打包为`.crate`文件。
+38. 当一个庞大的项目中包含多个包时，可以通过工作空间（workspace）来共享不同包之间相同的依赖，节省磁盘空间和编译时间。
+39. 工作空间在根目录的`Cargo.toml`中配置：
+```TOML
+[workspace]
+members = ["fern_sim", "fern_img", "fern_video"]
+```
+40. 合并为工作空间后，删去各包中的`Cargo.lock`文件和target文件夹。
+41. 使用`cargo build --workspace`指令可以构建当前工作空间下的全部包。
+42. 使用`Github`托管项目时，可以使用Travis CI来完成自动测试。
+# 结构体
+1. 结构体的命名规范：结构体采用`CamelCase`，字段采用`snake_case`。
+2. 在一些树形或图形结构的方法签名中，使用`self: Rc<Self>`有时是更好的选择。
+3. 
