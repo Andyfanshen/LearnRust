@@ -155,4 +155,12 @@ let scaled = Vector2::UNIT.scaled_by(2.0);
 6. 可以为符合约束的所有类型实现某一trait：`impl<W: Write> WriteHtml for W {...}`
 7. 类似于子接口，Rust中也有子特征（subtrait），定义方式为：`trait Creature: Visible {...}`
 8. 子特征不继承超特征的内容（子特征实质上是描述一种约束关系），实现子特征的类型必须实现相应的超特征（supertrait）。
-9. 
+9. 使用完全限定语法调用trait方法：`<str as ToString>::to_string("hello")`
+10. 定义trait时，可以为其添加关联类型。实现具有关联类型的trait时，必须指定关联类型。
+11. 可以约束trait中的关联类型，例如`where I: Iterator<Item=String>`或是`where I: Iterator, I::Item: Debug`。
+12. 也可以约束trait对象的关联类型，例如`fn dump(iter: &mut dyn Iterator<Item=String>){...}`
+13. 泛型特征提供了一种“孤儿规则“的特例，即只需要特征的一项类型参数定义于当前包，就可以实现该泛型特征。举例：`impl Mul<WindowSize> for f64`以及`impl<T> Mul<WindowSize> for Vec<T>`。
+14. `impl Trait`是一类特殊的签名方式，多用于返回值描述中，即不具体指定返回值类型而是要求返回值实现了某一特征。举例：`fn cyclical_zip(v: Vec<u8>, u: Vec<u8>) -> impl Iterator<Item=u8>{...}`
+15. 使用`impl Trait`好处在于不再受具体返回值类型的限制，可以更加灵活地更改和迭代原有的函数/方法。但`impl Trait`是静态分发的，所以依赖于运行时的逻辑无法通过编译（例如match语法）。
+16. 也可以在泛型参数中使用`impl Trait`，例如`fn print<T: Display>(val: T)`等价于`fn print(val: impl Display)`。
+17. 
