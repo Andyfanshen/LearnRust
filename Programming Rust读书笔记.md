@@ -163,4 +163,12 @@ let scaled = Vector2::UNIT.scaled_by(2.0);
 14. `impl Trait`是一类特殊的签名方式，多用于返回值描述中，即不具体指定返回值类型而是要求返回值实现了某一特征。举例：`fn cyclical_zip(v: Vec<u8>, u: Vec<u8>) -> impl Iterator<Item=u8>{...}`
 15. 使用`impl Trait`好处在于不再受具体返回值类型的限制，可以更加灵活地更改和迭代原有的函数/方法。但`impl Trait`是静态分发的，所以依赖于运行时的逻辑无法通过编译（例如match语法）。
 16. 也可以在泛型参数中使用`impl Trait`，例如`fn print<T: Display>(val: T)`等价于`fn print(val: impl Display)`。
-17. 
+17. 特征也可以定义关联常数，例如
+```rust
+trait Greet {
+    const GRETTING: &'static str = "Hello";
+    fn greet(&self) -> String;
+}
+```
+18. 特征中的关联常数可以只声明不定义：`const ZERO: Self;`
+19. 
