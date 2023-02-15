@@ -175,4 +175,5 @@ trait Greet {
 1. Rust中的比较运算重载需要实现`PartialEq`特征，之所以称为`PartialEq`，是由于IEEE标准不满足数学上对相等性的“自反性”的要求，具体来说，IEEE规定了`NaN`必须和其他所有值都不相等（包括自身）。另外，任何与`NaN`的比较运算都返回`false`。
 2. Rust中几乎所有实现了`PartialEq`的类型也都实现了`Eq`，只有`f32`和`f64`是例外。
 3. 如果只需要比较自定义类型中各成员字段之间是否相等，则自定义类型的`PartialEq`和`Eq`特征都可以用属性自动实现：`#[derive(Eq, PartialEq)]`。
-4. 
+4. `PartialOrd`是对`PartialEq`的扩展，要求实现`partial_cmp()`方法，该方法返回一个`Option<Ordering>`类型，其中`Ordering`是一个枚举类型，包含`Less`、`Equal`和`Greater`三种值。基础类型中，只有浮点数之间的比较可能会返回`None`。
+5. 
