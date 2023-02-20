@@ -177,3 +177,8 @@ trait Greet {
 3. 如果只需要比较自定义类型中各成员字段之间是否相等，则自定义类型的`PartialEq`和`Eq`特征都可以用属性自动实现：`#[derive(Eq, PartialEq)]`。
 4. `PartialOrd`是对`PartialEq`的扩展，要求实现`partial_cmp()`方法，该方法返回一个`Option<Ordering>`类型，其中`Ordering`是一个枚举类型，包含`Less`、`Equal`和`Greater`三种值。基础类型中，只有浮点数之间的比较可能会返回`None`。
 5. `Ord`是对`PartialOrd`的扩展，要求实现`cmp()`方法，该方法返回一个`Ordering`类型。几乎所有实现类了`PartialOrd`的基础类型也都实现`Ord`，除了`f32`和`f64`。
+6. `std::cmp::Reverse`是一种特殊的包装类型，它对所有实现了`Ord`的类型都生效，作用是反转`Ord`的排序。
+7. `a[i]`是`*a.index(i)`的语法简写形式，实现`std::ops::Index`特征或`std::ops::IndexMut`特征即可使用。
+# 通用特征
+1. Rust中常用的Trait分为三种类型：语言扩展型（`Drop`，`Deref`，`From`等）、标记型（`Sized`，`Copy`等）和公共词汇型（`AsRef`，`TryFrom`等）。
+2. `Drop`的的调用是由外及内的，例如`String`内部使用`Vec<u8>`来存储字符，所以`String`本身的`drop`并不需要处理内存释放。
